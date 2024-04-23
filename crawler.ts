@@ -660,9 +660,7 @@ const { stdin: input, stdout: output } = require('node:process');
 
 const rl = readline.createInterface({ input, output });
 
-function main() {
-    console.log("Welkom bij mijn super coole automatische analyse voor de wielermanager! :))");
-
+function vergelijking(period: number) {
     rl.question('Voer renners in die je wil vergelijken, gescheiden door een komma. Stoppen doe je door op enter te duwen. \n> ', (a: string) => {
         let answer: string = a;
         let riders: [[string],[string]] = format_riders(answer.split(", ") as [string]);
@@ -676,6 +674,25 @@ function main() {
         evaluate_riders(riders[0], filename, 2005);
         rl.close();
     });
+}
+
+async function main() {
+    console.log("Welkom bij mijn super coole automatische analyse voor de wielermanager! :))");
+    let period_string: string = "";
+    await rl.question("Vanaf welk jaartal wil je graag info krijgen? (Kies iets groter dan 2005)\n> ", (a: string) => {
+        period_string = a;
+    });
+    console.log(period_string);
+    let period: number = parseInt(period_string);
+
+    while (Number.isNaN(period) || period < 2005) {
+        period_string = await rl.question("Dit heb ik niet begrepen, gelieve opnieuw te proberen.\nVanaf welk jaartal wil je graag info krijgen? (Kies iets groter dan 2005)\n> ");
+        period = parseInt(period_string);
+    }
+
+    console.log(period);
+
+    
 
    
 
