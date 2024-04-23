@@ -613,8 +613,121 @@ function fillOneDayRace(header: [string], race_results: [Race]): [string] {
     }
     return line;
 }
+/*
+function mySort(races: [Race]): [Race] {
+    for (let i = 1; i < races.length; i++) {
+        let race = races[i];
+        let prev = races[i-1];
+        if (instanceOfStageRace(race) && instanceOfStageRace(prev)) {
+            let thisRace: StageRace = race as StageRace;
+            let prevRace: StageRace = prev as StageRace;
+            let thisDayMonthBegin: [string, string] = thisRace.date[0].split(".") as [string, string];
+            let prevDayMonthBEgin: [string, string] = prevRace.date[0].split(".") as [string, string];
+            let thisBegin: [number, number] = [0,0];
+            thisBegin.pop();
+            thisBegin.pop();
+            thisBegin.push(parseInt(thisDayMonthBegin[0]));
+            thisBegin.push(parseInt(thisDayMonthBegin[1]));
+            let prevBegin: [number, number] = [0, 0];
+            prevBegin.pop();
+            prevBegin.pop();
+            prevBegin.push(parseInt(prevDayMonthBEgin[0]));
+            prevBegin.push(parseInt(prevDayMonthBEgin[1]));
+            if (thisBegin[1] < prevBegin[1] || (thisBegin[1] === prevBegin[1] && thisBegin[0] < prevBegin[0])) {
+                races.slice(0,i-1).push(race)
+                races.push(prev)
+                races = races.concat(races.slice(i+1)) as [Race];
+                if (i > 1) {
+                    i -= 1;
+                }
+            }
+        }
+        else if (instanceOfStageRace(race) && !instanceOfStageRace(prev)) {
+            let thisRace: StageRace = race as StageRace;
+            let prevRace: OneDayRace = prev as OneDayRace;
+            let thisDayMonthBegin: [string, string] = thisRace.date[0].split(".") as [string, string];
+            let prevDayMonthBEgin: [string, string] = prevRace.date.split(".") as [string, string];
+            let thisBegin: [number, number] = [0,0];
+            thisBegin.pop();
+            thisBegin.pop();
+            thisBegin.push(parseInt(thisDayMonthBegin[0]));
+            thisBegin.push(parseInt(thisDayMonthBegin[1]));
+            let prevBegin: [number, number] = [0, 0];
+            prevBegin.pop();
+            prevBegin.pop();
+            prevBegin.push(parseInt(prevDayMonthBEgin[0]));
+            prevBegin.push(parseInt(prevDayMonthBEgin[1]));
+            if (thisBegin[1] < prevBegin[1] || (thisBegin[1] === prevBegin[1] && thisBegin[0] < prevBegin[0])) {
+                races.slice(0,i-1).push(race)
+                races.push(prev)
+                races = races.concat(races.slice(i+1)) as [Race];
+                if (i > 1) {
+                    i -= 1;
+                }
+            }
+        }
+        else if (!instanceOfStageRace(race) && instanceOfStageRace(prev)) {
+            let thisRace: OneDayRace = race as OneDayRace;
+            let prevRace: StageRace = prev as StageRace;
+            let thisDayMonthBegin: [string, string] = thisRace.date.split(".") as [string, string];
+            let prevDayMonthBEgin: [string, string] = prevRace.date[0].split(".") as [string, string];
+            let thisBegin: [number, number] = [0,0];
+            thisBegin.pop();
+            thisBegin.pop();
+            thisBegin.push(parseInt(thisDayMonthBegin[0]));
+            thisBegin.push(parseInt(thisDayMonthBegin[1]));
+            let prevBegin: [number, number] = [0, 0];
+            prevBegin.pop();
+            prevBegin.pop();
+            prevBegin.push(parseInt(prevDayMonthBEgin[0]));
+            prevBegin.push(parseInt(prevDayMonthBEgin[1]));
+            if (thisBegin[1] < prevBegin[1] || (thisBegin[1] === prevBegin[1] && thisBegin[0] < prevBegin[0])) {
+                races.slice(0,i-1).push(race)
+                races.push(prev)
+                races = races.concat(races.slice(i+1)) as [Race];
+                if (i > 1) {
+                    i -= 1;
+                }
+            }
+        }
+        else if (!instanceOfStageRace(race) && !instanceOfStageRace(prev)) {
+            let thisRace: OneDayRace = race as OneDayRace;
+            let prevRace: OneDayRace = prev as OneDayRace;
+            let thisDayMonthBegin: [string, string] = thisRace.date.split(".") as [string, string];
+            let prevDayMonthBEgin: [string, string] = prevRace.date.split(".") as [string, string];
+            let thisBegin: [number, number] = [0,0];
+            thisBegin.pop();
+            thisBegin.pop();
+            thisBegin.push(parseInt(thisDayMonthBegin[0]));
+            thisBegin.push(parseInt(thisDayMonthBegin[1]));
+            let prevBegin: [number, number] = [0, 0];
+            prevBegin.pop();
+            prevBegin.pop();
+            prevBegin.push(parseInt(prevDayMonthBEgin[0]));
+            prevBegin.push(parseInt(prevDayMonthBEgin[1]));
+            if (thisBegin[1] < prevBegin[1] || (thisBegin[1] === prevBegin[1] && thisBegin[0] < prevBegin[0])) {
+                races.slice(0,i-1).push(race)
+                races.push(prev)
+                races = races.concat(races.slice(i+1)) as [Race];
+                if (i > 1) {
+                    i -= 1;
+                }
+            }
+        }
 
+        else {
+            console.log("Error on line 633");
+        }
+    }
+    return races;
+}
+*/
 function write_to_file(data: [[number, [Race]]], outputFilePath: string, riders: [string]) {
+    /*
+    for (let i = 0; i < data.length; i ++) {
+        let tmp = data[i];
+        data[i] = [tmp[0], mySort(tmp[1])];
+    }*/
     let formatted_year_data = split_per_year(data);
     let tableData: [[string]] = format_to_table(formatted_year_data, riders);
     const table = require('table').table;
@@ -676,38 +789,132 @@ function vergelijking(period: number) {
     });
 }
 
-async function main() {
-    console.log("Welkom bij mijn super coole automatische analyse voor de wielermanager! :))");
-    let period_string: string = "";
-    await rl.question("Vanaf welk jaartal wil je graag info krijgen? (Kies iets groter dan 2005)\n> ", (a: string) => {
-        period_string = a;
+function all_results(period: number) {
+    rl.question('Voer renners in die je wil vergelijken, gescheiden door een komma. Stoppen doe je door op enter te duwen. \n> ', async (a: string) => {
+        let answer: string = a;
+        let tmp: [[string],[string]] = format_riders(answer.split(", ") as [string]);
+        let riders: [string] = tmp[0];
+        let filename: string = "";
+        for (let l of tmp[1]) {
+            filename += l + "-"
+        }
+        let len = filename.length;
+        filename = filename.slice(0,len-1);
+        filename += ".txt"
+
+        let dummy: Race = {rider: "dummy", name: "dummy"};
+        let ridden_together: [[number, [Race]]] = [[0, [dummy]]];
+        ridden_together.pop();
+        let rider_results: [[RiderResults]] = await crawl(riders, period);
+        for (let y = 2024; y > (2024 - rider_results[0].length); y--) {
+            //let dummy: Race = {name: "dummy"};
+            let races_ridden: [Race] = [dummy];
+            races_ridden.pop();
+            // Per rider iterate of its results per year
+            for (let rider_years of rider_results) {
+                // Per results per year iterate over a riders results that year
+                for (let rider of rider_years) {
+                    if (rider.year === y) {
+                        // The races this rider rode this year
+                        let results: [Race] = rider.results as [Race];
+                        for (let result of results) {
+                            let tmp = race_in_ridden(result, races_ridden);
+                            let inridden: Boolean = tmp[0];
+                            if (inridden) {
+                                let intogether = race_in_together(result, ridden_together);
+                                if (intogether[0]) {
+                                    for (let t of intogether[1] as [[number, [Race]]]) {
+                                        ridden_together.push(t)
+                                    }
+                                    //ridden_together = intogether[1] as [[number, [Race]]];
+                                }
+                                else {
+                                    let together = tmp[1] as Race;
+                                    let new_list: [Race] = [together];
+                                    new_list.push(result);
+                                    ridden_together.push([y, new_list]);
+                                } 
+                            }
+                            else {
+                                ridden_together.push([y, [result]]);
+                            }
+                            races_ridden.push(result);
+                        }
+                    }
+                }
+            }
+        }
+        let check: [[Race]] = [[dummy]];
+        check.pop();
+
+        for (let i = 0; i < ridden_together.length; i++) {
+            let l = ridden_together[i][1];
+            if (check.includes(l)) {
+                ridden_together = ridden_together.slice(0,i).concat(ridden_together.slice(i+1)) as [[number, [Race]]];
+            }
+            else {
+                check.push(l);
+            }
+        }
+
+        write_to_file(ridden_together, filename, riders);
+
+
+        run();
+
     });
-    console.log(period_string);
+}
+
+
+async function main_menu(period_string: string) {
     let period: number = parseInt(period_string);
 
-    while (Number.isNaN(period) || period < 2005) {
-        period_string = await rl.question("Dit heb ik niet begrepen, gelieve opnieuw te proberen.\nVanaf welk jaartal wil je graag info krijgen? (Kies iets groter dan 2005)\n> ");
-        period = parseInt(period_string);
+    if (Number.isNaN(period) || period < 2005) {
+        console.log("Dit heb ik niet begrepen, probeer opnieuw.")
+        year();
     }
-
-    console.log(period);
-
-    
-
-   
-
-    
-
+    else {
+        console.log("Duid aan wat je wil doen door het overeenkomende getal te typen en op enter te duwen.");
+        console.log("0: Beïndig het programma");
+        console.log("1: Alle resultaten");
+        console.log("2: Vergelijking tussen meerdere renners");
+        console.log("3: Keer terug naar het begin.");
+        rl.question('>  ', (a: string) => {
+            if (a === "3") {
+                run();
+            }
+            else if (a === "1") {
+                all_results(period-1);
+            }
+            else if (a === "2") {
+                vergelijking(period-1);
+            }
+            else if (a === "0") {
+                rl.close();
+            }
+            else {
+                console.log("Dit heb ik niet begrepen, probeer opnieuw.");
+                main_menu(period_string);
+            }
+            //rl.close();
+        });
+    }
 
 }
 
-main();
+async function year() { 
+    rl.question('Vanaf welk jaartal wil je graag info krijgen? (Kies iets groter dan 2005)\n>  ', (a: string) => {
+        main_menu(a);
+        //rl.close();
+    });   
+}
+
+async function run() {
+    console.log("Welkom bij mijn super coole automatische analyse voor de wielermanager! :))");
+    year();
+
+}
+
+run();
 
 const source_url: string = "https://www.procyclingstats.com/"
-/*
-let riders: [string] = ["remco-evenepoel"];
-riders.push("vito-braet");
-//let riders: [string] = ["wout-van-aert"];
-riders.push("arnaud-de-lie", "oier-lazkano");
-//evaluate_riders(riders);
-*/
