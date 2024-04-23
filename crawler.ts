@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as xlsx from 'xlsx';
 import axios from 'axios';
+import { BlobOptions } from 'buffer';
+
 
 // Interface to represent a race
 interface Race {
@@ -22,7 +24,7 @@ interface StageRace extends Race {
 // Interface to represent a one day race which is a subset of a race
 interface OneDayRace extends Race {
     date: string;
-    result: number | String;
+    result: number | string;
 }
 
 // Function to issue a get request to the url in the parameter. It will call another function to parse the returned html (as a string) to a list of races
@@ -50,19 +52,17 @@ function parse_oneday_race(stage: string, rider_name: string): OneDayRace {
     let tmp = stage.split("</td>")
     let date_length = tmp[0].length;
     let one_day_date = tmp[0].substring(date_length - 5);
-    let position: number | String = parseInt(tmp[1].substring(4));
-    if (Number.isNaN(position)) {
-        if (tmp[1].substring(4) === "DNS") {
-            position = "DNS";
-        }
-        else if (tmp[1].substring(4) === "DNF") {
-            position = "DNF";
-        }
-        else {
-            console.log("Invalid position error");
-        }
+    let position: string | number;
+    let pos: string = tmp[1].substring(4);
+    if (tmp[1].substring(4) === "DNS") {
+        position = "DNS";
     }
-
+    else if (tmp[1].substring(4) === "DNF") {
+        position = "DNF";
+    }
+    else {
+        position = parseInt(pos);
+    }
     let tmp_name = tmp[4].split("</a>");
     let one_day_name_split = tmp_name[0].split(">");
     let one_day_name = one_day_name_split[one_day_name_split.length - 3].split(" <")[0].replace("&rsaquo;", "->");
@@ -100,22 +100,41 @@ function parse_stage_race(stages: [string], rider_name: string): StageRace {
 
     let tmp_race: OneDayRace = {rider: "dummy", name: "dummy", date: "2025", result: -1};
     let stage_list: [OneDayRace] = [tmp_race];
+    stage_list.pop();
 
     for (let leg of stages.slice(1)) {
         if (leg[22] === "<") {
             let tmp = leg.substring(31);
-            let position = parseInt(tmp.split("<")[0]);
+            let pos: string = tmp.split("<")[0];
+            let position: string | number;
+            if (pos === "DNF") {
+                position = "DNF";
+            }
+            else if (pos === "DNS") {
+                position = "DNS";
+            }
+            else {
+                position = parseInt(pos);
+            }
             if (leg.includes("Mountains classification")) {
-                mountains = position;
+                if (!Number.isNaN(position)) {
+                    mountains = position as number;
+                }
             }
             else if (leg.includes("Points classification")) {
-                points = position;
+                if (!Number.isNaN(position)) {
+                    points = position as number;
+                }
             }
             else if (leg.includes("General classification")) {
-                gc = position;
+                if (!Number.isNaN(position)) {
+                    gc = position as number;
+                }
             }
             else if (leg.includes("Youth classification")) {
-                youth = position;
+                if (!Number.isNaN(position)) {
+                    youth = position as number;
+                }
             }
             else {
                 console.log("\nERROR at: " + leg + "\n");
@@ -125,20 +144,20 @@ function parse_stage_race(stages: [string], rider_name: string): StageRace {
             let tmp = leg.split("</td>")
             let date_length = tmp[0].length;
             let one_day_date = tmp[0].substring(date_length - 5);
-            let position = parseInt(tmp[1].substring(4));
+            let pos: string = tmp[1].substring(4);
+            let position: string | number;
+            if (pos === "DNF" || pos === "DNS") {
+                position = pos;
+            }
+            else {
+                position = parseInt(pos);
+            }
 
             let tmp_name = tmp[4].split("</a>");
             let one_day_name_split = tmp_name[0].split(">");
             let one_day_name = one_day_name_split[one_day_name_split.length - 1].replace("&rsaquo;", "->");
 
             let one_day: OneDayRace = { rider: rider_name, name: one_day_name, date: one_day_date, result: position};
-
-            if (stage_list[0].name === "dummy" && stage_list.length === 1) {
-                stage_list.pop();
-            }
-            else if (stage_list[0].name === "dummy") {
-                console.log("Error")
-            }
             stage_list.push(one_day);
         }
     }
@@ -183,9 +202,9 @@ function parse_html(page: any, rider: string): [Race] {
 
     let dummy: Race = {rider: "dummy", name: "dummy"};
     let races_ridden: [Race] = [dummy];
+    races_ridden.pop();
 
-    if (list.length == 0) {
-        races_ridden.pop();
+    if (list.length === 0) {
         return races_ridden;
     }
 
@@ -204,26 +223,15 @@ function parse_html(page: any, rider: string): [Race] {
             }
             if (stage_race_items.length === 1) {
                 let race: Race = parse_oneday_race(stage_race_items[0], rider);
-                if (races_ridden[0].name === "dummy" && races_ridden.length === 1) {
-                    races_ridden.pop();
-                }
                 races_ridden.push(race);
             }
             else {
                 let race: Race = parse_stage_race(stage_race_items, rider); 
-                if (races_ridden[0].name === "dummy" && races_ridden.length === 1) {
-                    races_ridden.pop();
-                }
                 races_ridden.push(race); 
             }          
         }
-        /*
-        else {
-            console.log("\nERROR AT: " + item + "\n")
-        }
-        */
-    }
 
+    }
     return races_ridden;
 }
 
@@ -235,26 +243,18 @@ interface RiderResults {
 }
 
 // Funtion to get and format all the races a given rider has ridden during it's career
-async function rider_results(name: string): Promise<[RiderResults]> {
+async function rider_results(name: string, period: number): Promise<[RiderResults]> {
     let dummyRace: Race = {rider: "dummy", name: "dummy"};
     let dummy: RiderResults = {year: 2025, rider: name, results: [dummyRace] };
+    dummy.results?.pop();
     let all_results: [RiderResults] = [dummy];
-    for  (let y = 2024; y > 2021; y--) {
+    all_results.pop();
+    for  (let y = 2024; y > period; y--) {
         let url = source_url + "rider/" + name + "/" + y ;
         const data: void | [Race] = await fetchPage(url, name);
         if (data instanceof Object) {
             let results: RiderResults = { rider: name, year: y, results: data};
-            let check = results.results as [Race];
-            if (check[0].name === "dummy") {
-                continue;
-            }
-            else {
-                if (all_results[0].year === 2025) {
-                    all_results.pop();
-                }
-                all_results.push(results);
-            }
-            
+            all_results.push(results);            
         }
         else {
             let results: RiderResults = {year: y, rider: name};
@@ -285,19 +285,15 @@ function split_per_year(data: [[number, [Race]]]): [[number, [[Race]]]] {
     }
     let dummy: Race = {name: "dummy", rider: "dummy"};
     let result: [[number, [[Race]]]] = [[0, [[dummy]]]];
+    result.pop();
     for (let y of years) {
         let r: Race = {name: "dummy", rider: "dummy"};
         let races_in_year: [[Race]] = [[r]];
+        races_in_year.pop();
         for (let tmp of data) {
             if (tmp[0] === y) {
-                if (races_in_year.length === 1 && races_in_year[0][0].name === "dummy") {
-                    races_in_year.pop();
-                }
                 races_in_year.push(tmp[1]);
             }
-        }
-        if (result.length === 1 && result[0][0] === 0 && result[0][1][0][0].name === "dummy" ) {
-            result.pop()
         }
         result.push([y, races_in_year]);
     }
@@ -307,7 +303,6 @@ function split_per_year(data: [[number, [Race]]]): [[number, [[Race]]]] {
 
 function export_to_excel(data: [[number, [Race]]], outputFilePath: string) {
     let formatted_data = split_per_year(data);
-    console.log(formatted_data.length);
     const workbook = xlsx.utils.book_new();
     for (let i = 0; i < formatted_data.length; i++) {
         let year: number = formatted_data[i][0];
@@ -322,19 +317,15 @@ function export_to_excel(data: [[number, [Race]]], outputFilePath: string) {
 }
 
 // Function to crawl over all the requested riders and return their results
-async function crawl(riders: [string]): Promise<[[RiderResults]]> {
+async function crawl(riders: [string], period: number): Promise<[[RiderResults]]> {
     let dummy: [RiderResults] = [{rider: "dummy", year: 2025}];
     let all_results: [[RiderResults]] = [dummy];
+    all_results.pop();
     for (let rider of riders) {
-        let results: [RiderResults] = await rider_results(rider);
-        if (all_results[0][0].rider == "dummy") {
-            all_results.pop()
-        }
+        let results: [RiderResults] = await rider_results(rider, period);
         all_results.push(results);
         
     }
-
-    //console.log(all_results)
 
     return all_results;
 }
@@ -382,27 +373,23 @@ function race_in_together(race: Race, together: [[number, [Race]]]): [boolean, [
 }
 
 // Function to evaluate the riders that have ridden races together in the same years
-async function evaluate_riders(riders: [string]) {
+async function evaluate_riders(riders: [string], filename: string, period: number) {
     let dummy: Race = {rider: "dummy", name: "dummy"};
     let ridden_together: [[number, [Race]]] = [[0, [dummy]]];
-    let rider_results: [[RiderResults]] = await crawl(riders);
+    ridden_together.pop();
+    let rider_results: [[RiderResults]] = await crawl(riders, period);
     for (let y = 2024; y > (2024 - rider_results[0].length); y--) {
         //let dummy: Race = {name: "dummy"};
         let races_ridden: [Race] = [dummy];
+        races_ridden.pop();
         for (let rider_years of rider_results) {
             for (let rider of rider_years) {
                 if (rider.year === y) {
-                    if (races_ridden.length === 1 && races_ridden[0].name === "dummy") {
-                        races_ridden.pop()
-                    }
                     let results: [Race] = rider.results as [Race];
                     for (let result of results) {
                         let tmp = race_in_ridden(result, races_ridden);
                         let inridden: Boolean = tmp[0];
                         if (inridden) {
-                            if (ridden_together.length === 1 && ridden_together[0][0] === 0 && ridden_together[0][1][0].name === "dummy") {
-                                ridden_together.pop();
-                            }
                             let intogether = race_in_together(result, ridden_together);
                             if (intogether[0]) {
                                 ridden_together = intogether[1] as [[number, [Race]]];
@@ -420,19 +407,290 @@ async function evaluate_riders(riders: [string]) {
             }
         }
     }
-    export_to_excel(ridden_together, 'test.xlsx');
+    write_to_file(ridden_together, filename, riders);
 }
 
 
+function instanceOfStageRace(object: Race): boolean {
+    return ('race_days' in object);
+}
+
+function format_to_table(data: [[number, [[Race]]]], riders: [string]): [[string]] {
+    let sorted_riders = riders.sort();
+    let tabledata: [[string]] = [[""]];
+    tabledata.pop();
+    let header: [string] = [""];
+    for (let r of sorted_riders) {
+        header.push(r);
+    }
+    let width: number = header.length;
+    tabledata.push(header);
+
+    for (let year_results of data) {
+        let year: number = year_results[0];
+        let year_line: [string] = ["     " + year.toString()];
+        for (let i = 0; i < width - 1; i++) {
+            year_line.push("");
+        }
+        tabledata.push(year_line);
+        let results: [[Race]] = year_results[1];
+        for (let race_results of results) {
+            let isStageRace: boolean;
+            if (instanceOfStageRace(race_results[0])) {
+                isStageRace = true;
+            }
+            else {
+                isStageRace = false;
+            }
+            if (isStageRace) {
+                let lines = fillStageRace(header, race_results);
+
+                for (let line of lines) {
+                    tabledata.push(line);
+                }
+
+            }
+            else {
+                let line: [string] = fillOneDayRace(header, race_results);
+                tabledata.push(line);
+            }
+            
+        }
+
+    }
+
+    return tabledata;
+}
+
+function fillStageRace(header: [string], race_results: [Race]): [[string]] {
+    let result: [[string]] = [[""]];
+    result.pop();
+    let name: string = race_results[0].name;
+    // Init GC
+    let test: StageRace = race_results[0] as StageRace;
+    if (test.gc_result !== undefined) {
+        let gc_line: [string] = [name + " GC"];
+        for (let i = 1; i < header.length; i++) {
+            let isEmpty: boolean = true;
+            for (let race of race_results) {
+                let r = race as StageRace;
+                if (header[i] === r.rider && r.gc_result !== undefined) {
+                    let position = r.gc_result as number;
+                    gc_line.push(position.toString());
+                    isEmpty = false;
+                }
+            }
+            if (isEmpty) {
+                gc_line.push("");
+            }
+        }
+        result.push(gc_line);
+    }
+            
+    // Init points
+    if (test.points_result !== undefined) {
+        let points_line: [string] = [name + " points"];
+        for (let i = 1; i < header.length; i++) {
+            let isEmpty: boolean = true;
+            for (let race of race_results) {
+                let r = race as StageRace;
+                if (header[i] === r.rider && r.points_result !== undefined) {
+                    let position = r.points_result as number;
+                    points_line.push(position.toString());
+                    isEmpty = false;
+                }
+            }
+            if (isEmpty) {
+                points_line.push("");
+            }
+        }
+        result.push(points_line);
+    }
+
+    //Init mountains
+    if (test.mountains_result !== undefined) {
+        let mountains_line: [string] = [name + " mountains"];
+        for (let i = 1; i < header.length; i++) {
+            let isEmpty: boolean = true;
+            for (let race of race_results) {
+                let r = race as StageRace;
+                if (header[i] === r.rider && r.mountains_result !== undefined) {
+                    let position = r.mountains_result as number;
+                    mountains_line.push(position.toString());
+                    isEmpty = false;
+                }
+            }
+            if (isEmpty) {
+                mountains_line.push("");
+            }
+        }
+        result.push(mountains_line);
+    }
+
+    //Init youth
+    let needed: boolean = false;
+    let youth_line: [string] = [name + " youth"];
+    for (let i = 1; i < header.length; i++) {
+        let isEmpty: boolean = true;
+        for (let race of race_results) {
+            let r = race as StageRace;
+            if (r.youth_result !== undefined && header[i] === r.rider) {
+                let position = r.youth_result as number;
+                youth_line.push(position.toString());
+                isEmpty = false;
+                needed = true;
+            }
+        }
+        if (isEmpty) {
+            youth_line.push("");
+        }
+    }
+    if (needed) {
+        result.push(youth_line);
+    }
+
+    let race_days: [[OneDayRace]] = format_race_days(race_results);
+    //Race days
+    for (let raceDay of race_days) {
+        let raceLine = fillOneDayRace(header, raceDay);
+        result.push(raceLine);
+    }
+
+    return result;
+}
+
+    function format_race_days(results: [Race]): [[OneDayRace]] {
+        let races: [StageRace] = results as [StageRace];
+        let dummy: OneDayRace = {name: "dummy", date: "", result: 0, rider: ""};
+        let result: [[OneDayRace]] = [[dummy]];
+        result.pop();
+        let nr_of_stages: number = Infinity;
+        for (let r of races) {
+            let check: number = r.race_days.length;
+            if (check < nr_of_stages) {
+                nr_of_stages = check;
+            }
+        }
+        for (let i = 0; i < nr_of_stages; i++) {
+            let tmp: [OneDayRace] = [dummy];
+            tmp.pop();
+            for (let race of races) {
+                let stages = race.race_days;
+                let len = stages.length;
+                tmp.push(stages[len - 1 - i]);
+            }
+            result.push(tmp);
+        }
+        return result;
+    }
 
 
+function fillOneDayRace(header: [string], race_results: [Race]): [string] {
+    let line: [string];
+    if (race_results[0].type === undefined) {
+        line = [race_results[0].name];
+    }
+    else {
+        line = [race_results[0].name + " " + race_results[0].type];
+    }
+    for (let i = 1; i < header.length; i++) {
+        let isEmpty: boolean = true;
+        for (let race of race_results) {
+            let r = race as OneDayRace;
+            if (header[i] === r.rider) {
+                if (r.result === "DNF" || r.result === "DNS") {
+                    line.push(r.result);
+                }
+                else {
+                    line.push(r.result.toString());
+                }
+                isEmpty = false;
+            }
+        }
+        if (isEmpty) {
+            line.push("");
+        }
+    }
+    return line;
+}
+
+function write_to_file(data: [[number, [Race]]], outputFilePath: string, riders: [string]) {
+    let formatted_year_data = split_per_year(data);
+    let tableData: [[string]] = format_to_table(formatted_year_data, riders);
+    const table = require('table').table;
+    let output = table(tableData);
+    console.log(output);
+
+    fs.writeFile(outputFilePath, output,"utf8", function(err) {
+        if(err) {
+            return console.log(err);
+        }
+
+        console.log("The file was saved!");
+    });
+
+}
+
+function format_riders(names: [string]): [[string], [string]] {
+    let little: [string] = [""];
+    let abbreviations: [string] = [""];
+    little.pop()
+    abbreviations.pop();
+    for (let name of names) {
+        let searchname: string = "";
+        let words = name.split(" ");
+        for (let t of words) {
+            t = t.toLowerCase();
+            searchname += t + "-";
+        }
+        searchname = searchname.slice(0, (searchname.length - 1));
+        little.push(searchname);
+        let tmp: [string] = name.toLowerCase().split(" ") as [string];
+        let abb: string = "";
+        for (let t of tmp) {
+            abb += t.slice(0,1);
+        }
+        abbreviations.push(abb);
+    }
+    return [little, abbreviations];
+}
+
+const readline = require('node:readline');
+const { stdin: input, stdout: output } = require('node:process');
+
+const rl = readline.createInterface({ input, output });
+
+function main() {
+    console.log("Welkom bij mijn super coole automatische analyse voor de wielermanager! :))");
+
+    rl.question('Voer renners in die je wil vergelijken, gescheiden door een komma. Stoppen doe je door op enter te duwen. \n> ', (a: string) => {
+        let answer: string = a;
+        let riders: [[string],[string]] = format_riders(answer.split(", ") as [string]);
+        let filename: string = "";
+        for (let l of riders[1]) {
+            filename += l + "-"
+        }
+        let len = filename.length;
+        filename = filename.slice(0,len-1);
+        filename += ".txt"
+        evaluate_riders(riders[0], filename, 2005);
+        rl.close();
+    });
+
+   
+
+    
 
 
+}
 
-let source_url: string = "https://www.procyclingstats.com/"
-//let riders: [string] = ["remco-evenepoel"];
-//riders.push("vito-braet", "lars-boven");
-let riders: [string] = ["wout-van-aert"];
+main();
+
+const source_url: string = "https://www.procyclingstats.com/"
+/*
+let riders: [string] = ["remco-evenepoel"];
+riders.push("vito-braet");
+//let riders: [string] = ["wout-van-aert"];
 riders.push("arnaud-de-lie", "oier-lazkano");
-//crawl(riders);
-evaluate_riders(riders);
+//evaluate_riders(riders);
+*/
